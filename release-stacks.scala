@@ -20,22 +20,39 @@ println(
     }
 
     h2 {
-      padding: 8px 0px;
+      padding: 8px 0px 2px;
+      border-bottom: 1px solid #D8E6EC;
     }
 
     a {
-      color: #111;
-      display: block;
-      padding: 4px 0px;
-      overflow: hidden;
       text-decoration: none;
-      text-overflow: ellipsis;
-      text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.1);
-      white-space: nowrap;
     }
 
     a:hover {
       background-color: #eee;
+    }
+
+    .branch {
+      display: inline-block;
+      vertical-align: top;
+    }
+
+    .branch-header {
+      margin: 15px 0;
+      border-bottom: 1px solid;
+    }
+
+    .author-group {
+      margin: 8px 0;
+    }
+
+    .commit {
+      color: #111;
+      display: block;
+      padding: 8px 0px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .warning {
@@ -75,7 +92,7 @@ def filterOutDuplicates(listOfDifferences: List[List[Commit]]) = {
   listOfDifferences.map(_.filter(c => {
     val branchesPresent = branches.map(_.originName).zipWithIndex.filter({ case (branchOrigin, _) =>
       val cmd = Seq("git", "log", branchOrigin, s"--after=${c.time - 3600 * 24 * 60}", "--pretty=%at%an", s"--author=${c.author}") #| Seq("grep", s"${c.time}${c.author}")
-      val exists = cmd.lines_!(ProcessLogger(line => ())).nonEmpty
+      val exists = cmd.lines_!.nonEmpty
       exists
     }).map(_._2)
 
@@ -101,7 +118,8 @@ def insertionRatioToColor(iR: Float) = iR match {
 def commitSizeToFontSize(size: Int) = (Math.log(size) + 2).toInt * 4 + 4
 
 def buildHTMLFromCommit(commit: Commit) = s"""
-  <a href='$repoURL/commit/${Utility.escape(commit.hash)}'
+  <a class='commit'
+    href='$repoURL/commit/${Utility.escape(commit.hash)}'
     style='font-size: ${commitSizeToFontSize(commit.size)}px;
     color: ${insertionRatioToColor(commit.insertionsRatio)}'>
     ${Utility.escape(commit.message)}</a>
@@ -111,10 +129,10 @@ val listOfDifferences = branches.sliding(2).map({ case List(to, from) => getComm
 val branchesWithDiffs = branches.zip(filterOutDuplicates(listOfDifferences)).toMap
 
 branchesWithDiffs.mapValues(_.groupBy(_.author).toList).foreach({ case (branch, diff) =>
-  println(s"<div style='width: ${100 / (branches.size - 1) - 1}%; display: inline-block; vertical-align: top;'>")
-  println(s"<h1 style='border-bottom: 1px solid;'>${branch.escapedName}</h1>")
+  println(s"<div class='branch' style='width: ${100 / (branches.size - 1) - 1}%'>")
+  println(s"<h1 class='branch-header'>${branch.escapedName}</h1>")
   diff.foreach({ case (author, commits) =>
-    println("<div>")
+    println("<div class='author-group'>")
     println(s"<h2>${Utility.escape(author)}</h2>")
     println(commits.sortBy(c => (-commitSizeToFontSize(c.size), c.isFix, -c.time)).map(buildHTMLFromCommit).mkString("\n"))
     println("</div>")
